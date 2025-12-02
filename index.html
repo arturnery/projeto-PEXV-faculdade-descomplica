@@ -42,7 +42,7 @@
       <option value="">-- Escolha um produto --</option>
       <!-- Opções de produtos serão preenchidas pelo JS -->
     </select>
-    <input type="text" id="produtoCustom" placeholder="Ou digite outro produto (ex: 6 cervejas)" oninput="limparSelecaoProduto()">
+    <input type="text" id="produtoCustom" placeholder="Ou digite outro produto (ex: Pão Francês)" oninput="limparSelecaoProduto()">
     <input type="number" id="quantidade" placeholder="Quantidade" value="1" min="1" oninput="calcularValorTotal()">
     <input type="number" step="0.01" id="valor" placeholder="Valor total da venda" oninput="limparSelecaoProduto()">
     
@@ -103,10 +103,7 @@ function limparSelecaoProduto() {
     // Se o usuário está digitando no customizado ou valor, limpa o dropdown
     document.getElementById('produto').value = "";
     
-    // Se o usuário digitar no valor, a quantidade deve ser 1
-    if (document.getElementById('valor').value) {
-        document.getElementById('quantidade').value = 1;
-    }
+    // Se o usuário digitar no valor, não altera a quantidade (mantendo o que foi digitado)
 }
 
 // Calcula o valor total com base no produto selecionado e quantidade
