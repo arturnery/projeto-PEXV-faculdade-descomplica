@@ -45,12 +45,12 @@
     <input type="text" id="produtoCustom" placeholder="Ou digite outro produto (ex: Pão Francês)" oninput="limparSelecaoProduto()">
     <input type="number" id="quantidade" placeholder="Quantidade" value="1" min="1" oninput="calcularValorTotal()">
     <input type="number" step="0.01" id="valor" placeholder="Valor total da venda" oninput="limparSelecaoProduto()">
-    <input type="text" id="nomeCliente" placeholder="Nome do cliente (obrigatório para FIADO)" style="display:none;">
+    <input type="text" id="nomeCliente" placeholder="Nome do cliente (obrigatório para FIADO)">
     
     <div class="botoes">
       <button onclick="vender('DINHEIRO')">DINHEIRO</button>
       <button class="cartao" onclick="vender('CARTÃO')">CARTÃO</button>
-      <button class="fiado" onclick="mostrarCampoNomeCliente(); vender('FIADO')">FIADO</button>
+      <button class="fiado" onclick="vender('FIADO')">FIADO</button>
     </div>
   </div>
 
@@ -99,11 +99,7 @@ function preencherProdutos() {
     });
 }
 
-// Mostra o campo de nome do cliente quando FIADO eh selecionado
-function mostrarCampoNomeCliente() {
-    document.getElementById('nomeCliente').style.display = 'block';
-    document.getElementById('nomeCliente').focus();
-}
+
 
 // Limpa a seleção do dropdown se o usuário digitar no campo customizado ou valor
 function limparSelecaoProduto() {
@@ -210,7 +206,6 @@ function vender(tipo) {
     valorInput.value = "";
     qtdInput.value = 1;
     nomeClienteInput.value = "";
-    nomeClienteInput.style.display = "none";
     
     atualizarTotais();
 }
