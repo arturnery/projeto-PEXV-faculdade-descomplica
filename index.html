@@ -45,11 +45,12 @@
     <input type="text" id="produtoCustom" placeholder="Ou digite outro produto (ex: Pão Francês)" oninput="limparSelecaoProduto()">
     <input type="number" id="quantidade" placeholder="Quantidade" value="1" min="1" oninput="calcularValorTotal()">
     <input type="number" step="0.01" id="valor" placeholder="Valor total da venda" oninput="limparSelecaoProduto()">
+    <input type="text" id="nomeCliente" placeholder="Nome do cliente (obrigatório para FIADO)" style="display:none;">
     
     <div class="botoes">
       <button onclick="vender('DINHEIRO')">DINHEIRO</button>
       <button class="cartao" onclick="vender('CARTÃO')">CARTÃO</button>
-      <button class="fiado" onclick="vender('FIADO')">FIADO</button>
+      <button class="fiado" onclick="mostrarCampoNomeCliente(); vender('FIADO')">FIADO</button>
     </div>
   </div>
 
@@ -96,6 +97,12 @@ function preencherProdutos() {
         option.textContent = `${p.nome} - R$ ${p.preco.toFixed(2).replace('.', ',')}`;
         select.appendChild(option);
     });
+}
+
+// Mostra o campo de nome do cliente quando FIADO eh selecionado
+function mostrarCampoNomeCliente() {
+    document.getElementById('nomeCliente').style.display = 'block';
+    document.getElementById('nomeCliente').focus();
 }
 
 // Limpa a seleção do dropdown se o usuário digitar no campo customizado ou valor
@@ -153,10 +160,12 @@ function vender(tipo) {
     const prodCustom = document.getElementById('produtoCustom');
     const qtdInput = document.getElementById('quantidade');
     const valorInput = document.getElementById('valor');
+    const nomeClienteInput = document.getElementById('nomeCliente');
 
     let produtoNome;
     let valor = parseFloat(valorInput.value);
     let quantidade = parseInt(qtdInput.value) || 1;
+    let nomeCliente = nomeClienteInput.value.trim();
 
     // 1. Determinar o nome do produto
     if (select.value !== "") {
@@ -171,27 +180,37 @@ function vender(tipo) {
         return;
     }
 
-    // 2. Validação final
+    // 2. Validacao final
     if (isNaN(valor) || valor <= 0) { 
         alert('Preencha o valor total da venda!'); 
         return; 
     }
 
-    // 3. Registrar a venda
+    // 3. Validacao para FIADO - exigir nome do cliente
+    if (tipo === 'FIADO' && nomeCliente === '') {
+        alert('Para vendas a FIADO, eh obrigatorio preencher o nome do cliente!');
+        nomeClienteInput.focus();
+        return;
+    }
+
+    // 4. Registrar a venda
     vendas.push({
         produto: produtoNome,
         quantidade: quantidade,
         valor: valor,
         tipo: tipo,
+        nomeCliente: nomeCliente || null,
         hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
     });
 
-    // 4. Salvar e resetar
+    // 5. Salvar e resetar
     localStorage.setItem('vendas_' + hoje, JSON.stringify(vendas));
     select.value = "";
     prodCustom.value = "";
     valorInput.value = "";
     qtdInput.value = 1;
+    nomeClienteInput.value = "";
+    nomeClienteInput.style.display = "none";
     
     atualizarTotais();
 }
@@ -209,12 +228,13 @@ function deletarVenda(index) {
 
 function mostrarLista() {
     let html = '';
-    // Iteramos sobre o array de vendas, usando o índice para a função de deletar
+    // Iteramos sobre o array de vendas, usando o indice para a funcao de deletar
     vendas.slice().reverse().forEach((v, i) => {
-        // O índice real no array original é (vendas.length - 1 - i)
+        // O indice real no array original eh (vendas.length - 1 - i)
         const originalIndex = vendas.length - 1 - i;
+        const nomeClienteInfo = v.nomeCliente ? ` - ${v.nomeCliente}` : '';
         html += `<div class="item">
-                    <div class="item-info">→ ${v.hora}  ${v.quantidade}x ${v.produto} (${v.tipo})</div>
+                    <div class="item-info">→ ${v.hora}  ${v.quantidade}x ${v.produto} (${v.tipo}${nomeClienteInfo})</div>
                     <div class="item-valor">
                         R$ ${formatarMoeda(v.valor)}
                         <button class="delete-btn" onclick="deletarVenda(${originalIndex})">X</button>
@@ -242,7 +262,8 @@ function exportarWhats() {
     texto += `*DETALHES DAS VENDAS:*\n`;
     
     vendas.slice().reverse().forEach(v => {
-        texto += `${v.hora} • ${v.quantidade}x ${v.produto} • R$ ${formatarMoeda(v.valor)} (${v.tipo})\n`;
+        const nomeClienteInfo = v.nomeCliente ? ` - ${v.nomeCliente}` : '';
+        texto += `${v.hora} • ${v.quantidade}x ${v.produto} • R$ ${formatarMoeda(v.valor)} (${v.tipo}${nomeClienteInfo})\n`;
     });
     
     texto += `\n*Relatório gerado pelo Venda do Dia.*`;
