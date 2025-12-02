@@ -4,6 +4,9 @@ Este projeto foi desenvolvido como parte do **PEX V (Projeto de Extensão)** da 
 
 A aplicação é um **site estático** (apenas HTML, CSS e JavaScript) que funciona 100% no navegador, sem a necessidade de servidor ou banco de dados. Os dados são salvos localmente no dispositivo (usando `localStorage`).
 
+<img width="1677" height="822" alt="image" src="https://github.com/user-attachments/assets/d64c22c7-c66b-47bf-b56d-d3f6f6a6a460" />
+
+
 ## 🔗 Acesso ao Projeto
 
 O projeto está hospedado gratuitamente no GitHub Pages e pode ser acessado diretamente por qualquer dispositivo (celular, tablet ou computador):
