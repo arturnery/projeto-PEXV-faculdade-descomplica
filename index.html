@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Venda do Dia - Mercearia do Seu José</title>
+  <style>
+    body {font-family: Arial, sans-serif; margin:0; padding:15px; background:#f4f4f4;}
+    h1 {text-align:center; color:#2c3e50; font-size: 1.5em;}
+    .total {background:#2c3e50; color:white; padding:15px; border-radius:10px; text-align:center; font-size:1.4em; margin-bottom:15px;}
+    .resumo {display:flex; justify-content:space-around; background:#34495e; color:white; padding:10px; border-radius:8px; margin-bottom:15px; font-size: 0.9em;}
+    .form {background:white; padding:15px; border-radius:10px; box-shadow:0 2px 10px rgba(0,0,0,0.1);}
+    input, select, button {padding:12px; margin:5px 0; width:100%; font-size:1.1em; border-radius:8px; border:1px solid #ccc; box-sizing: border-box;}
+    button {background:#27ae60; color:white; border:none; font-weight:bold; cursor: pointer;}
+    .cartao {background:#2980b9 !important;}
+    .fiado {background:#c0392b !important;}
+    .lista {margin-top:20px;}
+    .item {padding:10px; background:white; margin:5px 0; border-radius:8px; box-shadow:0 1px 5px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;}
+    .item-info {flex-grow: 1;}
+    .item-valor {font-weight: bold; color: #2c3e50;}
+    .botoes {display:flex; gap:10px; margin-top: 10px;}
+    .botoes button {flex:1;}
+    .limpar {background:#95a5a6 !important; margin-top:20px;}
+    .botoes-rodape {display: flex; gap: 10px;}
+    .botoes-rodape button {flex: 1;}
+    .delete-btn {background: #c0392b; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 0.8em; cursor: pointer; margin-left: 10px;}
+  </style>
+</head>
+<body>
+  <h1>Venda do Dia - Mercearia do Seu José</h1>
+  <div id="hoje" style="text-align: center; margin-bottom: 10px;"><small>Data: </small></div>
+  
+  <div class="total">TOTAL DO DIA: R$ <span id="total">0,00</span></div>
+  <div class="resumo">
+    <div>Dinheiro: R$ <span id="dinheiro">0,00</span></div>
+    <div>Cartão: R$ <span id="cartao">0,00</span></div>
+    <div>Fiado: R$ <span id="fiado">0,00</span></div>
+  </div>
+
+  <div class="form">
+    <select id="produto" onchange="calcularValorTotal()">
+      <option value="">-- Escolha um produto --</option>
+      <!-- Opções de produtos serão preenchidas pelo JS -->
+    </select>
+    <input type="text" id="produtoCustom" placeholder="Ou digite outro produto (ex: 6 cervejas)" oninput="limparSelecaoProduto()">
+    <input type="number" id="quantidade" placeholder="Quantidade" value="1" min="1" oninput="calcularValorTotal()">
+    <input type="number" step="0.01" id="valor" placeholder="Valor total da venda" oninput="limparSelecaoProduto()">
+    
+    <div class="botoes">
+      <button onclick="vender('DINHEIRO')">DINHEIRO</button>
+      <button class="cartao" onclick="vender('CARTÃO')">CARTÃO</button>
+      <button class="fiado" onclick="vender('FIADO')">FIADO</button>
+    </div>
+  </div>
+
+  <div class="lista" id="lista"></div>
+  
+  <div class="botoes-rodape">
+    <button class="limpar" onclick="limparDia()">LIMPAR DIA</button>
+    <button class="limpar" onclick="exportarWhats()">ENVIAR WHATS</button>
+  </div>
+
+<script>
+// --- CONFIGURAÇÃO DE PRODUTOS ---
+const PRODUTOS = [
+    { nome: "Arroz 5kg", preco: 22.00 },
+    { nome: "Feijão 1kg", preco: 9.50 },
+    { nome: "Óleo 900ml", preco: 8.90 },
+    { nome: "Açúcar 1kg", preco: 5.50 },
+    { nome: "Café 500g", preco: 15.50 },
+    { nome: "Sabão em pó", preco: 7.00 },
+    { nome: "Leite 1L", preco: 5.20 },
+    { nome: "Macarrão 500g", preco: 4.30 },
+    // Adicione mais produtos aqui
+];
+
+// --- VARIÁVEIS GLOBAIS ---
+const hoje = new Date().toLocaleDateString('pt-BR');
+document.getElementById('hoje').innerHTML += hoje;
+let vendas = JSON.parse(localStorage.getItem('vendas_' + hoje)) || [];
+
+// --- FUNÇÕES DE UTILIDADE ---
+
+// Preenche o dropdown de produtos
+function preencherProdutos() {
+    const select = document.getElementById('produto');
+    // Limpa as opções existentes (exceto a primeira)
+    while (select.options.length > 1) {
+        select.remove(1);
+    }
+    
+    PRODUTOS.forEach((p, index) => {
+        const option = document.createElement('option');
+        // O valor da option será o índice no array PRODUTOS
+        option.value = index; 
+        option.textContent = `${p.nome} - R$ ${p.preco.toFixed(2).replace('.', ',')}`;
+        select.appendChild(option);
+    });
+}
+
+// Limpa a seleção do dropdown se o usuário digitar no campo customizado ou valor
+function limparSelecaoProduto() {
+    // Se o usuário está digitando no customizado ou valor, limpa o dropdown
+    document.getElementById('produto').value = "";
+    
+    // Se o usuário digitar no valor, a quantidade deve ser 1
+    if (document.getElementById('valor').value) {
+        document.getElementById('quantidade').value = 1;
+    }
+}
+
+// Calcula o valor total com base no produto selecionado e quantidade
+function calcularValorTotal() {
+    const select = document.getElementById('produto');
+    const qtdInput = document.getElementById('quantidade');
+    const valorInput = document.getElementById('valor');
+    
+    const selectedIndex = select.value;
+    const quantidade = parseInt(qtdInput.value) || 1;
+    
+    // Se um produto do dropdown foi selecionado
+    if (selectedIndex !== "") {
+        const produto = PRODUTOS[parseInt(selectedIndex)];
+        const valorTotal = produto.preco * quantidade;
+        valorInput.value = valorTotal.toFixed(2);
+        document.getElementById('produtoCustom').value = ""; // Limpa o customizado
+    } else {
+        // Se não há produto selecionado, o valor deve ser digitado manualmente
+        // Se o valor já foi digitado, não faz nada.
+    }
+}
+
+// Formata um número para o padrão monetário brasileiro
+function formatarMoeda(valor) {
+    return valor.toFixed(2).replace('.', ',');
+}
+
+// --- FUNÇÕES PRINCIPAIS ---
+
+function atualizarTotais() {
+    let total = vendas.reduce((s,v)=>s+v.valor,0);
+    let dinheiro = vendas.filter(v=>v.tipo==='DINHEIRO').reduce((s,v)=>s+v.valor,0);
+    let cartao = vendas.filter(v=>v.tipo==='CARTÃO').reduce((s,v)=>s+v.valor,0);
+    let fiado = vendas.filter(v=>v.tipo==='FIADO').reduce((s,v)=>s+v.valor,0);
+    
+    document.getElementById('total').textContent = formatarMoeda(total);
+    document.getElementById('dinheiro').textContent = formatarMoeda(dinheiro);
+    document.getElementById('cartao').textContent = formatarMoeda(cartao);
+    document.getElementById('fiado').textContent = formatarMoeda(fiado);
+    
+    mostrarLista();
+}
+
+function vender(tipo) {
+    const select = document.getElementById('produto');
+    const prodCustom = document.getElementById('produtoCustom');
+    const qtdInput = document.getElementById('quantidade');
+    const valorInput = document.getElementById('valor');
+
+    let produtoNome;
+    let valor = parseFloat(valorInput.value);
+    let quantidade = parseInt(qtdInput.value) || 1;
+
+    // 1. Determinar o nome do produto
+    if (select.value !== "") {
+        // Produto selecionado do dropdown
+        produtoNome = PRODUTOS[parseInt(select.value)].nome;
+    } else if (prodCustom.value.trim() !== "") {
+        // Produto digitado no campo customizado
+        produtoNome = prodCustom.value.trim();
+    } else {
+        // Nenhum produto selecionado/digitado
+        alert('Preencha o produto!');
+        return;
+    }
+
+    // 2. Validação final
+    if (isNaN(valor) || valor <= 0) { 
+        alert('Preencha o valor total da venda!'); 
+        return; 
+    }
+
+    // 3. Registrar a venda
+    vendas.push({
+        produto: produtoNome,
+        quantidade: quantidade,
+        valor: valor,
+        tipo: tipo,
+        hora: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})
+    });
+
+    // 4. Salvar e resetar
+    localStorage.setItem('vendas_' + hoje, JSON.stringify(vendas));
+    select.value = "";
+    prodCustom.value = "";
+    valorInput.value = "";
+    qtdInput.value = 1;
+    
+    atualizarTotais();
+}
+
+function deletarVenda(index) {
+    if (confirm('Tem certeza que deseja deletar esta venda?')) {
+        // Remove o item do array de vendas
+        vendas.splice(index, 1);
+        // Salva o novo array no localStorage
+        localStorage.setItem('vendas_' + hoje, JSON.stringify(vendas));
+        // Atualiza a tela
+        atualizarTotais();
+    }
+}
+
+function mostrarLista() {
+    let html = '';
+    // Iteramos sobre o array de vendas, usando o índice para a função de deletar
+    vendas.slice().reverse().forEach((v, i) => {
+        // O índice real no array original é (vendas.length - 1 - i)
+        const originalIndex = vendas.length - 1 - i;
+        html += `<div class="item">
+                    <div class="item-info">→ ${v.hora}  ${v.quantidade}x ${v.produto} (${v.tipo})</div>
+                    <div class="item-valor">
+                        R$ ${formatarMoeda(v.valor)}
+                        <button class="delete-btn" onclick="deletarVenda(${originalIndex})">X</button>
+                    </div>
+                 </div>`;
+    });
+    document.getElementById('lista').innerHTML = html || '<p style="text-align:center; color:#777;">Nenhuma venda registrada ainda.</p>';
+}
+
+function limparDia() {
+    if (confirm('Tem certeza? Isso apagará TODAS as vendas do dia!')) {
+        vendas = [];
+        localStorage.removeItem('vendas_' + hoje);
+        atualizarTotais();
+    }
+}
+
+function exportarWhats() {
+    let texto = `*VENDAS DO DIA - ${hoje}*\n\n`;
+    texto += `*TOTAL GERAL:* R$ ${document.getElementById('total').textContent}\n`;
+    texto += `--------------------------------\n`;
+    texto += `Dinheiro: R$ ${document.getElementById('dinheiro').textContent}\n`;
+    texto += `Cartão: R$ ${document.getElementById('cartao').textContent}\n`;
+    texto += `Fiado: R$ ${document.getElementById('fiado').textContent}\n\n`;
+    texto += `*DETALHES DAS VENDAS:*\n`;
+    
+    vendas.slice().reverse().forEach(v => {
+        texto += `${v.hora} • ${v.quantidade}x ${v.produto} • R$ ${formatarMoeda(v.valor)} (${v.tipo})\n`;
+    });
+    
+    texto += `\n*Relatório gerado pelo Venda do Dia.*`;
+
+    const uri = 'https://wa.me/?text=' + encodeURIComponent(texto);
+    window.open(uri, '_blank');
+}
+
+// --- INICIALIZAÇÃO ---
+preencherProdutos();
+atualizarTotais();
+</script>
+</body>
+</html>
